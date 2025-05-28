@@ -5,35 +5,44 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\URL;
 
 class AuthService
 {
 
-    public function register(array $data): array
-    {
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => bcrypt($data['password']),
-        ]);
+public function register(array $data): array
+{
+    $user = User::create([
+        'name' => $data['name'],
+        'email' => $data['email'],
+        'password' => bcrypt($data['password']),
+    ]);
 
-        $user->sendEmailVerificationNotification();
+    $verificationUrl = URL::temporarySignedRoute(
+        'verification.verify',
+        now()->addMinutes(60),
+        ['id' => $user->id, 'hash' => sha1($user->email)]
+    );
 
-        $token = $user->createToken('apitoken')->plainTextToken;
+    $user->sendEmailVerificationNotification();
 
-        return [
-            'user' => $user,
-            'token' => $token
-        ];
-    }
+    return [
+        'user' => $user,
+        'verification_url' => $verificationUrl 
+    ];
+}
 
     public function login(array $credentials): array|string
     {
 
-        $user = User::where('email', $credentials['email']->first());
+        $user = User::where('email', $credentials['email'])->first();
 
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
             return 'Credenciais inválidas';
+        }
+
+        if(!$user->hasVerifiedEmail()){
+            return response()->json(['message' => 'Precisa verificar o email'], 403);
         }
 
         $token = $user->createToken('apitoken')->plainTextToken;
