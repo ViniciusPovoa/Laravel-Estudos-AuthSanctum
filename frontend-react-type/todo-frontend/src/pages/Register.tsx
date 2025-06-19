@@ -16,7 +16,7 @@ export default function Register(){
         try{
             const response = await api.post('/api/register', {name, email, password, password_confirmation: confirmPassword});
             localStorage.setItem('token', response.data.token);
-            navigate('/dashboard');
+            navigate('/login');
         } catch(err: any){
             console.error(err);
             setError("Não foi possível registrar");

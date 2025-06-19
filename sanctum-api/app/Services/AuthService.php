@@ -38,7 +38,7 @@ public function register(array $data): array
         $user = User::where('email', $credentials['email'])->first();
 
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
-            return 'Credenciais inválidas';
+            throw new \Exception('Credenciais inválidas',401);
         }
 
         if(!$user->hasVerifiedEmail()){

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CategoriesController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmailVerificationController;
@@ -26,6 +27,15 @@ Route::post('/login', [AuthController::class, 'login']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
+
+    Route::post('/categories',[CategoriesController::class, 'store']);
+    Route::put('/categories/{id}', [CategoriesController::class, 'update']);
+    Route::get('/categories',[CategoriesController::class, 'index']);
+    Route::get('/categories/{id}',[CategoriesController::class, 'show']);
+    Route::delete('/categories/{id}', [CategoriesController::class, 'destroy']);
+
+    Route::post('/todos/{id}/upload-document', [TodoController::class, 'uploadDocument']);
+    Route::patch('/todos/{id}/toggle', [TodoController::class, 'markasCompleted']);
     Route::get('/todos', [TodoController::class, 'index']);
     Route::post('/todos', [TodoController::class, 'store']);
     Route::get('/todos/{id}', [TodoController::class, 'show']);

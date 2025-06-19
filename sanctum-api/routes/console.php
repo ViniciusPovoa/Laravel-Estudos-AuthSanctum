@@ -1,8 +1,13 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
+use App\Jobs\SendReminderEmailJob;
 use Illuminate\Support\Facades\Artisan;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+
+
+
+    Artisan::command('todo:send-reminders', function () {
+        $this->info('Enviando lembretes de tarefas...');
+        SendReminderEmailJob::dispatch();
+        $this->info('Lembretes enfileirados com sucesso!');
+    })->purpose('Envia lembretes para tarefas que vencem amanhã.');

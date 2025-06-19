@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Todo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class TodoController extends Controller
 {
@@ -14,20 +16,34 @@ class TodoController extends Controller
         return Auth::user()->todos()->orderBy('deadline')->get();
     }
 
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string|max:255',
-            'deadline' => 'required|date',
-            'priority' => 'required|string|max:255',
-        ]);
 
-        return Auth::user()->todos()->create($data);
+    public function store(Request $request)
+    {   
+        Log::info('Token recebido:', [request()->bearerToken()]);
+
+
+
+        $data = $request->validate([
+    'title' => 'required|string|max:255',
+    'description' => 'nullable|string|max:255',
+    'deadline' => 'required|date',
+    'priority' => 'required|in:high,medium,low',
+    'document' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,png|max:20480',
+    'categories_id' => 'nullable|integer|exists:categories,id',
+]);
+
+        $todo = Auth::user()->todos()->create($data);
+
+        if ($request->hasFile('document')) {
+    $path = $request->file('document')->store('documents', 'public');
+    $todo->update(['document_path' => $path]);
+  }
+
+  return $todo;
     }
 
- public function show($id)
-{
+    public function show($id)
+    {
     $todo = Auth::user()->todos()->find($id);
 
     if (!$todo) {
@@ -35,23 +51,41 @@ class TodoController extends Controller
     }
 
     return $todo;
-}
+    }
+
+    public function markasCompleted(Request $request, $id)
+    {
+        $todo = Auth::user()->todos()->findOrFail($id);
+
+        $todo->completed = !$todo->completed;
+        $todo->save();
+    }
+
+
 
 
     public function update(Request $request, $id)
     {
         $todo = Auth::user()->todos()->findOrFail($id);
 
-        $data = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'completed' => 'sometimes|boolean',
-            'description' => 'sometimes|string|max:255',
-            'deadline' => 'sometimes|date',
-            'priority' => 'sometimes|string|max:255'
-        ]);
+       $data = $request->validate([
+    'title' => 'sometimes|string|max:255',
+    'completed' => 'sometimes|boolean',
+    'description' => 'sometimes|string|max:255',
+    'deadline' => 'sometimes|date',
+    'priority' => 'sometimes|in:high,medium,low',
+    'document' => 'sometimes|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,png|max:20480',
+    'categories_id' => 'sometimes|integer|exists:categories,id'
+]);
 
-        $todo->update($data);
-        return $todo;
+$todo->update($data);
+
+if ($request->hasFile('document')) {
+    $path = $request->file('document')->store('documents', 'public');
+    $todo->update(['document_path' => $path]);
+}
+
+return $todo;
     }
 
     public function destroy($id)
@@ -60,4 +94,24 @@ class TodoController extends Controller
         $todo->delete();
         return response()->json(['message' => 'Tarefa deletada com sucesso']);
     }
+
+
+   public function uploadDocument(Request $request, $id)
+{
+    $todo = Auth::user()->todos()->findOrFail($id);
+
+    $request->validate([
+        'document' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,png|max:20480',
+    ]);
+
+    if ($request->hasFile('document')) {
+        $path = $request->file('document')->store('documents', 'public');
+
+        $todo->update([
+            'document_path' => $path,
+        ]);
+    }
+
+    return response()->json(['message' => 'Documento enviado!', 'todo' => $todo->refresh()]);
+}
 }
